@@ -1,6 +1,27 @@
 #!/bin/bash
 
+# Load environment variables first
 set -a && source .env && set +a
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            cat << EOF
+CURRENT CONFIGURATION:
+    UPLOAD_LOCATION: ${UPLOAD_LOCATION:-"Not Set"}
+    BACKUP_PATH: ${BACKUP_PATH:-"Not Set"}
+EOF
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use -h or --help for usage information"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 # Create database backup directory
 mkdir -p "$UPLOAD_LOCATION/database-backup"
