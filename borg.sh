@@ -1,7 +1,30 @@
 #!/bin/bash
 
+# Check if running as sudo
+if [ "$EUID" -ne 0 ]; then 
+    echo "Error: This script must be run as sudo"
+    exit 1
+fi
+
+# Check if .env file exists
+if [ ! -f ".env" ]; then
+    echo "Error: .env file not found in current directory"
+    echo "Please ensure the .env file exists and contains the required configuration"
+    exit 1
+fi
+
 # Load environment variables first
 set -a && source .env && set +a
+
+# Verify that required environment variables are loaded
+if [ -z "$UPLOAD_LOCATION" ] || [ -z "$BACKUP_PATH" ] || [ -z "$DB_USERNAME" ]; then
+    echo "Error: Required environment variables not loaded from .env file"
+    echo "Please check that .env contains:"
+    echo "  - UPLOAD_LOCATION"
+    echo "  - BACKUP_PATH" 
+    echo "  - DB_USERNAME"
+    exit 1
+fi
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
