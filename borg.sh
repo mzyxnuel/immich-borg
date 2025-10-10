@@ -49,7 +49,7 @@ EOF
 done
 
 # Create database backup directory
-mkdir -p "$DB_DATA_LOCATION/$DB_DATABASE_NAME-database-backup"
+mkdir -p "$UPLOAD_LOCATION/$DB_DATABASE_NAME-database-backup"
 
 # Initialize Borg repository if it doesn't exist or isn't valid
 if [ ! -d "$BACKUP_LOCATION/$DB_DATABASE_NAME" ] || ! borg info "$BACKUP_LOCATION/$DB_DATABASE_NAME" >/dev/null 2>&1; then
@@ -61,7 +61,7 @@ fi
 
 # Backup database
 echo "Starting database dump..."
-docker exec -t ${DB_DATABASE_NAME}_postgres pg_dumpall --clean --if-exists --username=$DB_USERNAME > "$DB_DATA_LOCATION/$DB_DATABASE_NAME-database-backup/$DB_DATABASE_NAME-database.sql"
+docker exec -t ${DB_DATABASE_NAME}_postgres pg_dumpall --clean --if-exists --username=$DB_USERNAME > "$UPLOAD_LOCATION/$DB_DATABASE_NAME-database-backup/$DB_DATABASE_NAME-database.sql"
 
 ### Append to local Borg repository
 echo "Creating Borg backup..."
