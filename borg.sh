@@ -36,21 +36,23 @@ EOF
     shift
 done
 
-# Create database backup directory
-mkdir -p "$UPLOAD_LOCATION/$DB_DATABASE_NAME-database-backup"
+# # Create database backup directory
+# mkdir -p "$UPLOAD_LOCATION/$DB_DATABASE_NAME-database-backup"
 
-# Initialize Borg repository if it doesn't exist or isn't valid
+# # Initialize Borg repository if it doesn't exist or isn't valid
 BACKUP_DIRECTORY="$BACKUP_LOCATION/$DB_DATABASE_NAME"
-if [ ! -d "$BACKUP_DIRECTORY" ] || ! borg info "$BACKUP_DIRECTORY" >/dev/null 2>&1; then
-    mkdir -p "$BACKUP_DIRECTORY"
-    borg init --encryption=none "$BACKUP_DIRECTORY"
+# if [ ! -d "$BACKUP_DIRECTORY" ] || ! borg info "$BACKUP_DIRECTORY" >/dev/null 2>&1; then
+#     mkdir -p "$BACKUP_DIRECTORY"
+#     borg init --encryption=none "$BACKUP_DIRECTORY"
 
-    echo "Initialized new Borg repository at $BACKUP_DIRECTORY"
-fi
+#     echo "Initialized new Borg repository at $BACKUP_DIRECTORY"
+# fi
 
 # Backup database
 echo "Starting database dump..."
-docker exec -t ${DB_DATABASE_NAME}_postgres pg_dumpall --clean --if-exists --username=$DB_USERNAME > "$UPLOAD_LOCATION/$DB_DATABASE_NAME-database-backup/$DB_DATABASE_NAME-database.sql"
+docker exec -t ${DB_DATABASE_NAME}_postgres pg_dumpall \
+    --clean --if-exists --username=$DB_USERNAME \
+    > "$UPLOAD_LOCATION/$DB_DATABASE_NAME-database-backup/$DB_DATABASE_NAME-database.sql"
 
 ### Append to local Borg repository
 echo "Creating Borg backup..."
@@ -61,7 +63,7 @@ echo "Calculating backup size..."
 BACKUP_SIZE=$(du -sb "$UPLOAD_LOCATION" --exclude="$UPLOAD_LOCATION/thumbs" --exclude="$UPLOAD_LOCATION/encoded-video" 2>/dev/null | cut -f1)
 echo "Data to backup: $(numfmt --to=iec-i --suffix=B $BACKUP_SIZE)"
 
-borg create --progress --stats --compression lz4 \
+borg create --progress --stats \
     "$BACKUP_DIRECTORY::{now}" "$UPLOAD_LOCATION" \
     --exclude "$UPLOAD_LOCATION"/thumbs/ \
     --exclude "$UPLOAD_LOCATION"/encoded-video/
