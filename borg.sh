@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Check if running as sudo
-if [ "$EUID" -ne 0 ]; then 
-    echo "Error: This script must be run as sudo"
-    exit 1
-fi
+# if [ "$EUID" -ne 0 ]; then 
+#     echo "Error: This script must be run as sudo"
+#     exit 1
+# fi
 
 # Check if .env file exists
 if [ ! -f ".env" ]; then
@@ -15,18 +15,6 @@ fi
 
 # Load environment variables first
 set -a && source .env && set +a
-
-# Verify that required environment variables are loaded
-if [ -z "$UPLOAD_LOCATION" ] || [ -z "$BACKUP_LOCATION" ] || [ -z "$DB_USERNAME" ]; then
-    echo "Error: Required environment variables not loaded from .env file"
-    echo "Please check that .env contains:"
-    echo "  - UPLOAD_LOCATION"
-    echo "  - BACKUP_LOCATION" 
-    echo "  - DB_USERNAME"
-    echo "  - DB_DATABASE_NAME"
-    echo "  - DB_DATA_LOCATION"
-    exit 1
-fi
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -52,11 +40,12 @@ done
 mkdir -p "$UPLOAD_LOCATION/$DB_DATABASE_NAME-database-backup"
 
 # Initialize Borg repository if it doesn't exist or isn't valid
-if [ ! -d "$BACKUP_LOCATION/$DB_DATABASE_NAME" ] || ! borg info "$BACKUP_LOCATION/$DB_DATABASE_NAME" >/dev/null 2>&1; then
-    mkdir -p "$BACKUP_LOCATION/$DB_DATABASE_NAME"
-    borg init --encryption=none "$BACKUP_LOCATION/$DB_DATABASE_NAME"
+BACKUP_DIRECTORY="$BACKUP_LOCATION/$DB_DATABASE_NAME"
+if [ ! -d "$BACKUP_DIRECTORY" ] || ! borg info "$BACKUP_DIRECTORY" >/dev/null 2>&1; then
+    mkdir -p "$BACKUP_DIRECTORY"
+    borg init --encryption=none "$BACKUP_DIRECTORY"
 
-    echo "Initialized new Borg repository at $BACKUP_LOCATION/$DB_DATABASE_NAME"
+    echo "Initialized new Borg repository at $BACKUP_DIRECTORY"
 fi
 
 # Backup database
@@ -73,7 +62,7 @@ BACKUP_SIZE=$(du -sb "$UPLOAD_LOCATION" --exclude="$UPLOAD_LOCATION/thumbs" --ex
 echo "Data to backup: $(numfmt --to=iec-i --suffix=B $BACKUP_SIZE)"
 
 borg create --progress --stats --compression lz4 \
-    "$BACKUP_LOCATION/$DB_DATABASE_NAME::{now}" "$UPLOAD_LOCATION" \
+    "$BACKUP_DIRECTORY::{now}" "$UPLOAD_LOCATION" \
     --exclude "$UPLOAD_LOCATION"/thumbs/ \
     --exclude "$UPLOAD_LOCATION"/encoded-video/
 
@@ -84,7 +73,7 @@ echo "Backup completed in: $(date -ud "@$BACKUP_DURATION" +%T) ($(($BACKUP_DURAT
 echo "Pruning old backups..."
 PRUNE_START_TIME=$(date +%s)
 
-borg prune --list --stats --keep-weekly=4 --keep-monthly=3 "$BACKUP_LOCATION/$DB_DATABASE_NAME"
+borg prune --list --stats --keep-weekly=4 --keep-monthly=3 "$BACKUP_DIRECTORY"
 
 PRUNE_END_TIME=$(date +%s)
 PRUNE_DURATION=$((PRUNE_END_TIME - PRUNE_START_TIME))
@@ -93,7 +82,7 @@ echo "Pruning completed in: $(($PRUNE_DURATION / 60)) min $(($PRUNE_DURATION % 6
 echo "Compacting repository..."
 COMPACT_START_TIME=$(date +%s)
 
-borg compact --progress "$BACKUP_LOCATION/$DB_DATABASE_NAME"
+borg compact --progress "$BACKUP_DIRECTORY"
 
 COMPACT_END_TIME=$(date +%s)
 COMPACT_DURATION=$((COMPACT_END_TIME - COMPACT_START_TIME))
