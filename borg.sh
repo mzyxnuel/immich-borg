@@ -50,9 +50,8 @@ BACKUP_DIRECTORY="$BACKUP_LOCATION/$DB_DATABASE_NAME"
 
 # Backup database
 echo "Starting database dump..."
-docker exec -t ${DB_DATABASE_NAME}_postgres pg_dumpall \
-    --clean --if-exists --username=$DB_USERNAME \
-    > "$UPLOAD_LOCATION/$DB_DATABASE_NAME-database-backup/$DB_DATABASE_NAME-database.sql"
+docker exec -t ${DB_DATABASE_NAME}_postgres pg_dumpall --clean --if-exists --username=$DB_USERNAME \
+    | gzip > "$UPLOAD_LOCATION/$DB_DATABASE_NAME-database-backup/$DB_DATABASE_NAME.sql.gz"
 
 ### Append to local Borg repository
 echo "Creating Borg backup..."
